@@ -120,6 +120,7 @@ export async function addOfficialAccount(accountData) {
  * @param {string} accountData.user_id - AnyRouter用户ID（关联anyrouter-users表的_id）
  * @param {string} accountData.username - 账号用户名，根据account_type不同含义不同：0-AnyRouter账号名，1-LinuxDo账号名，2-GitHub账号名
  * @param {string} accountData.password - 账号密码，根据account_type不同含义不同：0-AnyRouter密码，1-LinuxDo密码，2-GitHub密码
+ * @param {string} [accountData.twofa_secret] - 2FA密钥 第三方登录时使用的TOTP两步验证密钥（Base32编码），用于生成动态验证码
  * @param {number} [accountData.account_type=0] - 账号类型（可选，默认0）：0-AnyRouter账号，1-LinuxDo账号，2-GitHub账号
  * @param {number} [accountData.checkin_mode] - 签到模式（可选）：1-只签到AnyRouter，2-只签到AgentRouter，3-两者都签到。注意：AnyRouter账号（account_type=0）强制只能签到AnyRouter（忽略此参数）；其他类型账号：优先使用此参数，未传入则使用用户的allowed_checkin_mode
  * @param {string} [accountData.session=''] - 会话标识（可选，默认为空字符串）
@@ -147,6 +148,7 @@ export async function addAccount(accountData) {
 		used = 0,
 		checkin_date = 0,
 		notes = '',
+		twofa_secret = ''
 	} = accountData;
 
 	// 验证必需字段
@@ -203,6 +205,7 @@ export async function addAccount(accountData) {
 		used,
 		checkin_date,
 		notes,
+		twofa_secret
 	};
 
 	// 只有在明确提供了 checkin_mode 时才添加到请求中

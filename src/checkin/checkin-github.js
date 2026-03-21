@@ -285,6 +285,7 @@ class AnyRouterGitHubSignIn {
 			let signInResponse = null;
 			let userSelfResponse = null;
 			let sessionCookie = null;
+			let oauthBannedMessage = null;
 
 			// 创建 Promise 用于等待 /api/user/self 响应
 			let userSelfResolve;
@@ -300,6 +301,15 @@ class AnyRouterGitHubSignIn {
 				// 	console.log('[网络] 捕获签到接口响应');
 				// 	signInResponse = await response.json().catch(() => null);
 				// }
+
+				// 监听 GitHub OAuth 登录接口响应（检测封禁）
+				if (url.includes('/api/oauth/github')) {
+					const oauthData = await response.json().catch(() => null);
+					if (oauthData && !oauthData.success && oauthData.message) {
+						oauthBannedMessage = oauthData.message;
+						console.log(`[网络] GitHub OAuth 响应: ${oauthBannedMessage}`);
+					}
+				}
 
 				// 监听用户信息接口响应
 				if (url.includes('/api/user/self')) {
@@ -434,6 +444,15 @@ class AnyRouterGitHubSignIn {
 					// 	console.log('[网络] 捕获签到接口响应');
 					// 	signInResponse = await response.json().catch(() => null);
 					// }
+
+					// 监听 GitHub OAuth 登录接口响应（检测封禁）
+					if (url.includes('/api/oauth/github')) {
+						const oauthData = await response.json().catch(() => null);
+						if (oauthData && !oauthData.success && oauthData.message) {
+							oauthBannedMessage = oauthData.message;
+							console.log(`[网络] GitHub OAuth 响应: ${oauthBannedMessage}`);
+						}
+					}
 
 					// 监听用户信息接口响应
 					if (url === `${this.baseUrl}/api/user/self`) {
@@ -625,8 +644,13 @@ class AnyRouterGitHubSignIn {
 
 						const finalTotpUrl = page.url();
 						if (finalTotpUrl.includes('/sessions/two-factor') || finalTotpUrl.includes('/login')) {
-							console.log('[2FA] 两步验证失败，登录失败');
-							return null;
+							// OAuth 检测到封禁导致重定向到登录页，不算 2FA 失败
+							if (oauthBannedMessage) {
+								console.log(`[2FA] 两步验证通过，但账号已被封禁: ${oauthBannedMessage}`);
+							} else {
+								console.log('[2FA] 两步验证失败，登录失败');
+								return null;
+							}
 						}
 
 						console.log('[2FA] 两步验证通过');
@@ -772,6 +796,19 @@ class AnyRouterGitHubSignIn {
 					console.log('[警告] 等待 /api/user/self 接口超时，将使用备用方案');
 				}
 			} // 结束 if (currentPageUrl.includes('/login')) 代码块
+
+			// 检查 GitHub OAuth 登录是否检测到账号封禁
+			if (oauthBannedMessage) {
+				console.log(`[警告] 账号 ${username} 已被封禁: ${oauthBannedMessage}`);
+				return {
+					session: null,
+					apiUser: null,
+					userInfo: {
+						username: username,
+						status: 2,
+					},
+				};
+			}
 
 			// 步骤7: 获取用户信息
 			console.log('[提取] 提取用户信息和 session...');

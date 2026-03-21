@@ -341,6 +341,21 @@ class UnifiedAnyRouterChecker {
 		);
 
 		if (loginResult && loginResult.userInfo) {
+			// 检查账号是否被封禁（status=2 表示封禁）
+			if (loginResult.userInfo.status === 2) {
+				updateData.is_banned = true;
+				updateData.checkin_date = Date.now();
+				console.log(`[警告] ${accountName}: 账号已被封禁，更新封禁状态`);
+				await this.updateAccountInfo(accountInfo._id, updateData);
+
+				return {
+					success: true,
+					account: accountName,
+					userInfo: '🚫 检测到账号被官方封禁，不再签到',
+					method: 'github',
+				};
+			}
+
 			if (loginResult.session) {
 				updateData.session = loginResult.session;
 				// session 有效期设置为 30 天
@@ -652,7 +667,9 @@ if (isMainModule) {
 			// const userId = '69633ecb952272c52c5abb9a'; //mymy
 			const userId = '691812572d9d4df472aadeda'; //myde
 			// const userId = '68f98f2a2c5de7e57262ef43'; //Oliver
-			
+			// const userId = '69b116b51501ab29a110e6ec'; //gongsi
+			// const userId = "69aba9e3db447c164c0ff80d"; //hezuo
+			// const userId = "69b4cf81f7ac1a41a13b8981"; //hezuo2
 			// 使用 getAccountList 获取指定用户的账号列表
 			const apiResult = await getAccountList({ user_id: userId, account_type: 2 });
 
@@ -664,7 +681,9 @@ if (isMainModule) {
 				process.exit(1);
 			}
 
-			const accounts = apiResult.data.slice(-1);
+			// const accounts = apiResult.data
+
+			const accounts = apiResult.data.filter(account => account.username === 'cpkvh912nj');
 			console.log(`[成功] 获取到 ${accounts.length} 个账号`);
 
 			accounts.forEach(item=>{
